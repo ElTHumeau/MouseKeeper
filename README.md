@@ -25,7 +25,7 @@ MouseKeeper est une extension Chrome qui simule la présence de votre souris dan
 
 1. Clonez ce dépôt :
    ```bash
-   git clone https://github.com/votre-nom/mousekeeper.git
+   git clone https://github.com/ElTHumeau/mousekeeper.git
    cd mousekeeper
    ```
 
