@@ -41,12 +41,8 @@ function notifyAllTabs(newState) {
         chrome.tabs.sendMessage(tab.id, {
           action: 'toggleMouseKeeper',
           enabled: newState
-        }).catch(() => {
-          console.log(`Impossible d'envoyer le message à l'onglet ${tab.id}`);
-        });
-      } catch (error) {
-        console.log(`Erreur lors de l'envoi du message à l'onglet ${tab.id}:`, error);
-      }
+        }).catch(() => { /* Impossible d'envoyer le message */ });
+      } catch (error) { /* Erreur lors de l'envoi du message */ }
     });
   });
 }

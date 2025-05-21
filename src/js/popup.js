@@ -19,11 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
           if (tabs[0]) {
             try {
               chrome.tabs.sendMessage(tabs[0].id, {action: 'toggleMouseKeeper', enabled: newState})
-                .catch(error => {
-                  console.log("Impossible d'envoyer le message à l'onglet:", error);
-                });
-            } catch (error) {
-              console.log("Erreur lors de l'envoi du message:", error);
+                .catch(() => { /* Impossible d'envoyer le message */ });
+            } catch (_) {
+              /* Erreur lors de l'envoi du message */
             }
           }
         });
