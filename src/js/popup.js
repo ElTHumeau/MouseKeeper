@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const statusText = document.getElementById('status');
   const statusContainer = document.getElementById('statusContainer');
   
-  // Vérifier l'état actuel
   chrome.storage.local.get(['mouseKeeperEnabled'], function(result) {
     const isEnabled = result.mouseKeeperEnabled || false;
     updateUI(isEnabled);
@@ -12,15 +11,23 @@ document.addEventListener('DOMContentLoaded', function() {
   toggleButton.addEventListener('change', function() {
     const newState = toggleButton.checked;
     
-    chrome.storage.local.set({mouseKeeperEnabled: newState}, function() {
-      updateUI(newState);
-      
-      // Envoyer l'état au script de contenu
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, {action: 'toggleMouseKeeper', enabled: newState});
-        }
-      });
+    chrome.runtime.sendMessage({action: 'toggleState', enabled: newState}, function(response) {
+      if (response && response.success) {
+        updateUI(response.newState);
+        
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+          if (tabs[0]) {
+            try {
+              chrome.tabs.sendMessage(tabs[0].id, {action: 'toggleMouseKeeper', enabled: newState})
+                .catch(error => {
+                  console.log("Impossible d'envoyer le message à l'onglet:", error);
+                });
+            } catch (error) {
+              console.log("Erreur lors de l'envoi du message:", error);
+            }
+          }
+        });
+      }
     });
   });
   

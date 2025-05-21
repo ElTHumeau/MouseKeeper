@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Strict MouseKeeper</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #fff;
+            padding: 10px 15px;
+            border-bottom: 1px solid #e1e4e8;
+            margin-bottom: 20px;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-indicator.active {
+            background-color: #28a745;
+        }
+        .status-indicator.inactive {
+            background-color: #dc3545;
+        }
+        .test-area {
+            flex: 1;
+            background-color: white;
+            border: 3px solid #e74c3c;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-area.blocked {
+            border-color: #c0392b;
+            background-color: #ffebee;
+        }
+        .test-label {
+            font-size: 18px;
+            color: #e74c3c;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .mouse-coords {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 0 0 8px 8px;
+            margin-top: 20px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #a0c1e8;
+            cursor: not-allowed;
+        }
+        .reset-btn {
+            background-color: #dc3545;
+        }
+        .reset-btn:hover {
+            background-color: #c82333;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .stat-box {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+            margin: 0 10px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .block-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(231, 76, 60, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+            display: none;
+        }
+        .block-overlay.visible {
+            display: flex;
+        }
+        .block-message {
+            margin-bottom: 20px;
+        }
+        .timer-display {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Test Strict MouseKeeper</h1>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status">
+                <div class="status-indicator inactive" id="extensionIndicator"></div>
+                <span id="extensionStatus">Extension MouseKeeper : Non détectée</span>
+            </div>
+            <div class="time-elapsed">
+                Temps de test : <span id="timeElapsed">0</span>s
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="exitCount">0</div>
+                <div class="stat-label">Sorties détectées</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="maxTime">0</div>
+                <div class="stat-label">Temps max sans sortie (s)</div>
+            </div>
+        </div>
+        
+        <div class="test-area" id="testArea">
+            <div class="mouse-coords" id="mouseCoords">X: 0, Y: 0</div>
+            <div class="test-label">ZONE DE TEST STRICTE</div>
+            <div class="test-label">Déplacez votre souris ici - Ne sortez pas de la zone !</div>
+            
+            <div class="block-overlay" id="blockOverlay">
+                <div class="block-message">SORTIE DÉTECTÉE !</div>
+                <div class="block-message">La zone est bloquée pendant :</div>
+                <div class="timer-display" id="blockTimer">5</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startButton">Démarrer le test</button>
+            <button id="resetButton" class="reset-btn" disabled>Réinitialiser</button>
+        </div>
+    </div>
+
+    <script>
+        // Éléments DOM
+        const testArea = document.getElementById('testArea');
+        const mouseCoords = document.getElementById('mouseCoords');
+        const exitCount = document.getElementById('exitCount');
+        const maxTime = document.getElementById('maxTime');
+        const timeElapsed = document.getElementById('timeElapsed');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const extensionStatus = document.getElementById('extensionStatus');
+        const extensionIndicator = document.getElementById('extensionIndicator');
+        const blockOverlay = document.getElementById('blockOverlay');
+        const blockTimer = document.getElementById('blockTimer');
+        
+        // Variables
+        let exits = 0;
+        let testActive = false;
+        let startTime = null;
+        let currentTime = 0;
+        let longestTime = 0;
+        let elapsedTimer = null;
+        let blockTimerInterval = null;
+        let blockTimeRemaining = 5;
+        
+        // Démarrer le test
+        startButton.addEventListener('click', function() {
+            if (testActive) return;
+            
+            testActive = true;
+            startButton.disabled = true;
+            resetButton.disabled = false;
+            
+            // Réinitialiser les compteurs
+            exits = 0;
+            exitCount.textContent = '0';
+            currentTime = 0;
+            longestTime = 0;
+            maxTime.textContent = '0';
+            
+            // Démarrer le chronomètre
+            startTime = new Date();
+            elapsedTimer = setInterval(updateElapsedTime, 1000);
+        });
+        
+        // Réinitialiser le test
+        resetButton.addEventListener('click', function() {
+            testActive = false;
+            startButton.disabled = false;
+            resetButton.disabled = true;
+            
+            // Arrêter le chronomètre
+            clearInterval(elapsedTimer);
+            
+            // Réinitialiser les compteurs
+            timeElapsed.textContent = '0';
+            
+            // Débloquer la zone si elle est bloquée
+            if (blockOverlay.classList.contains('visible')) {
+                blockOverlay.classList.remove('visible');
+                testArea.classList.remove('blocked');
+                clearInterval(blockTimerInterval);
+            }
+        });
+        
+        // Mettre à jour le temps écoulé
+        function updateElapsedTime() {
+            if (!testActive) return;
+            
+            const now = new Date();
+            currentTime = Math.floor((now - startTime) / 1000);
+            timeElapsed.textContent = currentTime;
+            
+            // Mettre à jour le temps maximum sans sortie
+            if (currentTime > longestTime) {
+                longestTime = currentTime;
+                maxTime.textContent = longestTime;
+            }
+        }
+        
+        // Suivre la position de la souris
+        testArea.addEventListener('mousemove', function(event) {
+            const rect = testArea.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            mouseCoords.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+        });
+        
+        // Détecter quand la souris sort de la zone
+        testArea.addEventListener('mouseleave', function(event) {
+            if (!testActive || blockOverlay.classList.contains('visible')) return;
+            
+            exits++;
+            exitCount.textContent = exits;
+            
+            // Bloquer la zone pendant 5 secondes
+            testArea.classList.add('blocked');
+            blockOverlay.classList.add('visible');
+            
+            // Réinitialiser le compteur de temps actuel
+            currentTime = 0;
+            
+            // Démarrer le compte à rebours de blocage
+            blockTimeRemaining = 5;
+            blockTimer.textContent = blockTimeRemaining;
+            
+            blockTimerInterval = setInterval(function() {
+                blockTimeRemaining--;
+                blockTimer.textContent = blockTimeRemaining;
+                
+                if (blockTimeRemaining <= 0) {
+                    clearInterval(blockTimerInterval);
+                    blockOverlay.classList.remove('visible');
+                    testArea.classList.remove('blocked');
+                }
+            }, 1000);
+        });
+        
+        // Vérifier si l'extension MouseKeeper est active
+        function checkExtensionStatus() {
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                try {
+                    chrome.runtime.sendMessage({action: 'getState'}, function(response) {
+                        if (response && response.enabled !== undefined) {
+                            extensionStatus.textContent = `Extension MouseKeeper : ${response.enabled ? 'Activée' : 'Désactivée'}`;
+                            if (response.enabled) {
+                                extensionIndicator.classList.remove('inactive');
+                                extensionIndicator.classList.add('active');
+                            } else {
+                                extensionIndicator.classList.remove('active');
+                                extensionIndicator.classList.add('inactive');
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.log("Extension non disponible:", error);
+                }
+            }
+        }
+        
+        // Vérifier le statut de l'extension au chargement
+        window.addEventListener('load', checkExtensionStatus);
+        
+        // Vérifier périodiquement le statut de l'extension
+        setInterval(checkExtensionStatus, 2000);
+    </script>
+</body>
+</html> 

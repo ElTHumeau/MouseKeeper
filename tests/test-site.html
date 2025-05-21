@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MouseKeeper</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-area {
+            border: 3px solid #ff5252;
+            background-color: #ffebee;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .test-area::before {
+            content: "Zone de test - Déplacez votre souris ici";
+            position: absolute;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .mouse-position {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .event-log {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            background-color: #f8f9fa;
+        }
+        .event-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .event-item.mouseout {
+            background-color: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+        }
+        .event-item.mouseleave {
+            background-color: #fce4ec;
+            color: #ad1457;
+            font-weight: bold;
+        }
+        .event-item.mousemove {
+            color: #1565c0;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .counter {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .counter span {
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .status.active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .timer {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test MouseKeeper</h1>
+        
+        <div class="status inactive" id="extensionStatus">
+            Extension MouseKeeper : <span id="statusText">Non détectée</span>
+        </div>
+        
+        <div class="timer" id="timer">
+            Temps écoulé sans sortie de souris : <span id="timeElapsed">0</span> secondes
+        </div>
+        
+        <div class="counter">
+            Sorties de souris détectées : <span id="exitCount">0</span>
+        </div>
+        
+        <div class="controls">
+            <button id="clearLog">Effacer le journal</button>
+            <button id="startTest">Démarrer le test (10s)</button>
+        </div>
+        
+        <div class="test-area" id="testArea">
+            <div class="mouse-position" id="mousePosition">X: 0, Y: 0</div>
+        </div>
+        
+        <h2>Journal des événements</h2>
+        <div class="event-log" id="eventLog"></div>
+    </div>
+
+    <script>
+        // Éléments DOM
+        const testArea = document.getElementById('testArea');
+        const mousePosition = document.getElementById('mousePosition');
+        const eventLog = document.getElementById('eventLog');
+        const exitCountElement = document.getElementById('exitCount');
+        const clearLogButton = document.getElementById('clearLog');
+        const startTestButton = document.getElementById('startTest');
+        const extensionStatus = document.getElementById('extensionStatus');
+        const statusText = document.getElementById('statusText');
+        const timeElapsed = document.getElementById('timeElapsed');
+        
+        // Variables
+        let exitCount = 0;
+        let isTestRunning = false;
+        let testTimer = null;
+        let startTime = null;
+        let elapsedTimer = null;
+        
+        // Fonction pour ajouter un événement au journal
+        function logEvent(eventType, event) {
+            const now = new Date();
+            const timestamp = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}.${now.getMilliseconds()}`;
+            
+            const item = document.createElement('div');
+            item.classList.add('event-item', eventType);
+            
+            let details = '';
+            if (event) {
+                details = ` - X: ${event.clientX}, Y: ${event.clientY}`;
+            }
+            
+            item.textContent = `[${timestamp}] ${eventType.toUpperCase()}${details}`;
+            eventLog.insertBefore(item, eventLog.firstChild);
+            
+            // Si c'est un événement de sortie, incrémenter le compteur
+            if (eventType === 'mouseout' || eventType === 'mouseleave') {
+                exitCount++;
+                exitCountElement.textContent = exitCount;
+            }
+        }
+        
+        // Écouteurs d'événements pour la zone de test
+        testArea.addEventListener('mousemove', function(event) {
+            mousePosition.textContent = `X: ${event.clientX}, Y: ${event.clientY}`;
+            // Limiter le nombre d'événements mousemove enregistrés pour éviter de surcharger le journal
+            if (Math.random() < 0.1) {
+                logEvent('mousemove', event);
+            }
+        });
+        
+        testArea.addEventListener('mouseenter', function(event) {
+            logEvent('mouseenter', event);
+        });
+        
+        testArea.addEventListener('mouseleave', function(event) {
+            logEvent('mouseleave', event);
+        });
+        
+        testArea.addEventListener('mouseout', function(event) {
+            logEvent('mouseout', event);
+        });
+        
+        // Effacer le journal
+        clearLogButton.addEventListener('click', function() {
+            eventLog.innerHTML = '';
+            exitCount = 0;
+            exitCountElement.textContent = '0';
+        });
+        
+        // Démarrer le test de 10 secondes
+        startTestButton.addEventListener('click', function() {
+            if (isTestRunning) return;
+            
+            isTestRunning = true;
+            startTestButton.textContent = 'Test en cours...';
+            startTestButton.disabled = true;
+            
+            // Réinitialiser le compteur
+            exitCount = 0;
+            exitCountElement.textContent = '0';
+            eventLog.innerHTML = '';
+            
+            // Enregistrer le temps de début
+            startTime = new Date();
+            
+            // Mettre à jour le temps écoulé
+            elapsedTimer = setInterval(function() {
+                const now = new Date();
+                const elapsed = Math.floor((now - startTime) / 1000);
+                timeElapsed.textContent = elapsed;
+            }, 1000);
+            
+            // Terminer le test après 10 secondes
+            testTimer = setTimeout(function() {
+                isTestRunning = false;
+                startTestButton.textContent = 'Démarrer le test (10s)';
+                startTestButton.disabled = false;
+                clearInterval(elapsedTimer);
+                
+                logEvent('test-complete', null);
+                alert(`Test terminé ! Nombre de sorties de souris détectées : ${exitCount}`);
+            }, 10000);
+        });
+        
+        // Vérifier si l'extension MouseKeeper est active
+        function checkExtensionStatus() {
+            // Vérifier si l'extension est installée et active
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                try {
+                    chrome.runtime.sendMessage({action: 'getState'}, function(response) {
+                        if (response && response.enabled !== undefined) {
+                            statusText.textContent = response.enabled ? 'Activée' : 'Désactivée';
+                            extensionStatus.className = response.enabled ? 'status active' : 'status inactive';
+                        }
+                    });
+                } catch (error) {
+                    console.log("Extension non disponible:", error);
+                }
+            }
+        }
+        
+        // Vérifier le statut de l'extension au chargement
+        window.addEventListener('load', checkExtensionStatus);
+        
+        // Vérifier périodiquement le statut de l'extension
+        setInterval(checkExtensionStatus, 2000);
+    </script>
+</body>
+</html> 

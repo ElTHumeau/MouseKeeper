@@ -3,9 +3,9 @@
   "name": "MouseKeeper",
   "version": "1.0",
   "description": "Simule que votre souris reste dans l'onglet même quand vous êtes ailleurs",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "action": {
-    "default_popup": "src/html/popup.html",
+    "default_popup": "html/popup.html",
     "default_icon": {
       "16": "images/mousekeeper_logo_16x16.png",
       "32": "images/mousekeeper_logo_32x32.png",
@@ -20,12 +20,12 @@
     "128": "images/mousekeeper_logo_128x128.png"
   },
   "background": {
-    "service_worker": "src/js/background.js"
+    "service_worker": "js/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/js/content.js"]
+      "js": ["js/content.js"]
     }
   ]
 } 

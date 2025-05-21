@@ -3,7 +3,6 @@ let lastPosition = { x: 0, y: 0 };
 let observer = null;
 let mouseInterval;
 
-// Recevoir l'état initial
 chrome.storage.local.get(['mouseKeeperEnabled'], function(result) {
   isActive = result.mouseKeeperEnabled || false;
   if (isActive) {
@@ -11,7 +10,6 @@ chrome.storage.local.get(['mouseKeeperEnabled'], function(result) {
   }
 });
 
-// Écouter les changements d'état
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'toggleMouseKeeper') {
     isActive = request.enabled;
@@ -26,7 +24,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
-// Suivre la dernière position connue de la souris
 document.addEventListener('mousemove', function(e) {
   if (isActive) {
     lastPosition = { x: e.clientX, y: e.clientY };
@@ -34,16 +31,14 @@ document.addEventListener('mousemove', function(e) {
 });
 
 function startMouseSimulation() {
-  // Intercepter les événements de souris
   document.addEventListener('mouseout', preventMouseOut, true);
   document.addEventListener('mouseleave', preventMouseOut, true);
   
-  // Créer un MutationObserver pour appliquer les intercepteurs aux nouveaux éléments
   observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       if (mutation.addedNodes.length) {
         mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1) { // Élément Node
+          if (node.nodeType === 1) {
             applyListenersToElement(node);
           }
         });
@@ -51,16 +46,13 @@ function startMouseSimulation() {
     });
   });
   
-  // Configuration de l'observateur
   observer.observe(document.body, {
     childList: true,
     subtree: true
   });
   
-  // Appliquer les intercepteurs aux éléments existants
   applyListenersToAllElements();
   
-  // Simuler un mouvement périodique de souris
   startMouseMovementInterval();
 }
 
@@ -96,7 +88,6 @@ function applyListenersToAllElements() {
 function startMouseMovementInterval() {
   mouseInterval = setInterval(function() {
     if (isActive) {
-      // Simuler un petit mouvement de souris pour maintenir l'activité
       const mouseEvent = new MouseEvent('mousemove', {
         bubbles: true,
         cancelable: true,
@@ -107,5 +98,5 @@ function startMouseMovementInterval() {
       
       document.dispatchEvent(mouseEvent);
     }
-  }, 3000); // Intervalle de 3 secondes
+  }, 3000);
 } 
